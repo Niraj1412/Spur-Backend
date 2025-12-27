@@ -24,8 +24,8 @@ export async function getHistory(conversationId: string) {
     [conversationId]
   );
 
-  return result.rows.map(r => ({
-    role: r.sender === "user" ? "user" : "assistant",
+  return result.rows.map((r: { sender: string; text: string }) => ({
+    role: r.sender === "user" ? ("user" as const) : ("assistant" as const),
     content: r.text
   }));
 }
@@ -36,7 +36,7 @@ export async function listMessages(conversationId: string) {
     [conversationId]
   );
 
-  return result.rows.map(r => ({
+  return result.rows.map((r: { id: string; sender: "user" | "ai"; text: string; created_at: Date }) => ({
     id: r.id,
     sender: r.sender,
     text: r.text,

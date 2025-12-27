@@ -10,9 +10,10 @@ import { generateReply } from "../services/llm.service";
 const router = Router();
 
 router.post("/message", async (req, res) => {
-  try {
-    let { message, sessionId } = req.body;
+  let sessionId: string | undefined = req.body.sessionId;
+  let message: string = req.body.message;
 
+  try {
     if (!message || !message.trim()) {
       return res.status(400).json({ error: "Message cannot be empty" });
     }

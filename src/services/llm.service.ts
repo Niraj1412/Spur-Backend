@@ -28,12 +28,12 @@ export async function generateReply(
 ): Promise<string> {
   const messages = history.map(m => ({
     role: m.role,
-    content: [{ type: "text", text: m.content }]
+    content: [{ type: "text" as const, text: m.content }]
   }));
 
   messages.push({
     role: "user",
-    content: [{ type: "text", text: userMessage }]
+    content: [{ type: "text" as const, text: userMessage }]
   });
 
   const response = await anthropic.messages.create({
