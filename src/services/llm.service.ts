@@ -1,11 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Default to a list of generally available models; override with GEMINI_MODELS (comma separated) or GEMINI_MODEL.
 const GEMINI_MODELS =
   (process.env.GEMINI_MODELS &&
     process.env.GEMINI_MODELS.split(",").map(m => m.trim()).filter(Boolean)) ||
   (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : null) || [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-pro"
@@ -20,9 +21,7 @@ const anthropic =
     apiKey: process.env.ANTHROPIC_API_KEY
   });
 
-const geminiClient =
-  process.env.GOOGLE_API_KEY &&
-  new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 const SYSTEM_PROMPT = `
 You are a helpful support agent for a small e-commerce store.
@@ -69,7 +68,7 @@ function fallbackAnswer() {
 }
 
 async function tryGemini(history: HistoryMessage[], userMessage: string) {
-  if (!geminiClient) return null;
+  if (!geminiApiKey) return null;
 
   const transcript = history
     .map(h => `${h.role === "assistant" ? "Agent" : "User"}: ${h.content}`)
@@ -80,16 +79,28 @@ async function tryGemini(history: HistoryMessage[], userMessage: string) {
 Conversation so far:
 ${transcript}
 User: ${userMessage}
-Agent:`;
+  Agent:`;
 
   for (const modelName of GEMINI_MODELS) {
     try {
-      const model = geminiClient.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent([{ text: prompt }]);
-      const text = result.response.text();
-      if (text?.trim()) {
-        return text.trim();
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.warn(`Gemini call failed (${modelName}):`, data?.error?.message || response.statusText);
+        continue;
       }
+
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text && text.trim()) return text.trim();
     } catch (err: any) {
       const msg =
         err?.statusText ||
