@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest";
+
 const anthropicEnabled =
   process.env.ANTHROPIC_API_KEY && process.env.ENABLE_ANTHROPIC !== "false";
 
@@ -61,7 +63,7 @@ function fallbackAnswer() {
 async function tryGemini(history: HistoryMessage[], userMessage: string) {
   if (!geminiClient) return null;
 
-  const model = geminiClient.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
   const transcript = history
     .map(h => `${h.role === "assistant" ? "Agent" : "User"}: ${h.content}`)
     .join("\n");
@@ -77,8 +79,9 @@ Agent:`;
     const result = await model.generateContent([{ text: prompt }]);
     const text = result.response.text();
     return text?.trim() || null;
-  } catch (err) {
-    console.error("Gemini call failed, will fallback", err);
+  } catch (err: any) {
+    const msg = err?.statusText || err?.message || "Gemini call failed";
+    console.warn(`Gemini call failed (${GEMINI_MODEL}):`, msg);
     return null;
   }
 }
