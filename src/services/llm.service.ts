@@ -1,8 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const anthropicEnabled =
+  process.env.ANTHROPIC_API_KEY && process.env.ENABLE_ANTHROPIC !== "false";
+
 const anthropic =
-  process.env.ANTHROPIC_API_KEY &&
+  anthropicEnabled &&
   new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   });
@@ -103,8 +106,12 @@ async function tryAnthropic(history: HistoryMessage[], userMessage: string) {
 
     const content = response.content[0];
     return content.type === "text" ? content.text : null;
-  } catch (err) {
-    console.error("Anthropic call failed, will fallback", err);
+  } catch (err: any) {
+    const msg =
+      err?.error?.error?.message ||
+      err?.message ||
+      "Anthropic call failed";
+    console.warn("Anthropic call failed, will fallback:", msg);
     return null;
   }
 }
