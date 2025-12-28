@@ -1,7 +1,10 @@
 import { Pool } from "pg";
 
+const isRemote = process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("localhost");
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  ssl: isRemote ? { rejectUnauthorized: false } : undefined
 });
 
 export async function initDb() {
