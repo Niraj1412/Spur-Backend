@@ -5,12 +5,12 @@ const GEMINI_MODELS =
   (process.env.GEMINI_MODELS &&
     process.env.GEMINI_MODELS.split(",").map(m => m.trim()).filter(Boolean)) ||
   (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : null) || [
-    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
     "gemini-pro"
   ];
+const GEMINI_API_VERSION = process.env.GEMINI_API_VERSION || "v1";
 
 const anthropicEnabled =
   process.env.ANTHROPIC_API_KEY && process.env.ENABLE_ANTHROPIC !== "false";
@@ -79,11 +79,11 @@ async function tryGemini(history: HistoryMessage[], userMessage: string) {
 Conversation so far:
 ${transcript}
 User: ${userMessage}
-  Agent:`;
+Agent:`;
 
   for (const modelName of GEMINI_MODELS) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+      const url = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${modelName}:generateContent?key=${geminiApiKey}`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
