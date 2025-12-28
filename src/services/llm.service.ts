@@ -70,13 +70,12 @@ function fallbackAnswer() {
 async function tryGemini(history: HistoryMessage[], userMessage: string) {
   if (!geminiApiKey) return null;
 
+  const supportsSystemInstruction = GEMINI_API_VERSION.startsWith("v1beta");
   const transcript = history
     .map(h => `${h.role === "assistant" ? "Agent" : "User"}: ${h.content}`)
     .join("\n");
 
-  const prompt = `${SYSTEM_PROMPT}
-
-Conversation so far:
+  const prompt = `${supportsSystemInstruction ? "" : `${SYSTEM_PROMPT}\n\n`}Conversation so far:
 ${transcript}
 User: ${userMessage}
 Agent:`;
@@ -84,13 +83,16 @@ Agent:`;
   for (const modelName of GEMINI_MODELS) {
     try {
       const url = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${modelName}:generateContent?key=${geminiApiKey}`;
+      const payload: Record<string, unknown> = {
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      };
+      if (supportsSystemInstruction) {
+        payload.systemInstruction = { parts: [{ text: SYSTEM_PROMPT }] };
+      }
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
