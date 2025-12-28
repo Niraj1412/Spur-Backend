@@ -1,7 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+// Default to a list of generally available models; override with GEMINI_MODELS (comma separated) or GEMINI_MODEL.
+const GEMINI_MODELS =
+  (process.env.GEMINI_MODELS &&
+    process.env.GEMINI_MODELS.split(",").map(m => m.trim()).filter(Boolean)) ||
+  (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : null) || [
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-pro"
+  ];
 
 const anthropicEnabled =
   process.env.ANTHROPIC_API_KEY && process.env.ENABLE_ANTHROPIC !== "false";
@@ -63,7 +71,6 @@ function fallbackAnswer() {
 async function tryGemini(history: HistoryMessage[], userMessage: string) {
   if (!geminiClient) return null;
 
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
   const transcript = history
     .map(h => `${h.role === "assistant" ? "Agent" : "User"}: ${h.content}`)
     .join("\n");
@@ -75,15 +82,30 @@ ${transcript}
 User: ${userMessage}
 Agent:`;
 
-  try {
-    const result = await model.generateContent([{ text: prompt }]);
-    const text = result.response.text();
-    return text?.trim() || null;
-  } catch (err: any) {
-    const msg = err?.statusText || err?.message || "Gemini call failed";
-    console.warn(`Gemini call failed (${GEMINI_MODEL}):`, msg);
-    return null;
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const model = geminiClient.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent([{ text: prompt }]);
+      const text = result.response.text();
+      if (text?.trim()) {
+        return text.trim();
+      }
+    } catch (err: any) {
+      const msg =
+        err?.statusText ||
+        err?.errorDetails ||
+        err?.message ||
+        "Gemini call failed";
+      console.warn(`Gemini call failed (${modelName}):`, msg);
+      try {
+        console.warn("Gemini error detail:", JSON.stringify(err, null, 2));
+      } catch {
+        /* ignore */
+      }
+    }
   }
+
+  return null;
 }
 
 async function tryAnthropic(history: HistoryMessage[], userMessage: string) {
