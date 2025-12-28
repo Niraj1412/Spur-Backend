@@ -1,14 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 // UPDATED: Use standard model names and default to v1beta for Gemini 1.5+ support
-const GEMINI_MODELS =
-  (process.env.GEMINI_MODELS &&
-    process.env.GEMINI_MODELS.split(",").map(m => m.trim()).filter(Boolean)) ||
-  (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : null) || [
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-pro-latest"
-  ];
+// Ignore .env GEMINI_MODELS for now as it likely contains deprecated models
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-flash-latest",
+  "gemini-pro-latest"
+];
 
 // UPDATED: Default to "v1beta" to support System Instructions and newer models
 const GEMINI_API_VERSION = process.env.GEMINI_API_VERSION || "v1beta";
