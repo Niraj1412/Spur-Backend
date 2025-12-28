@@ -10,6 +10,9 @@ initDb()
     });
   })
   .catch(err => {
-    console.error("Failed to initialize database", err);
-    process.exit(1);
+    console.warn("Failed to initialize database, defaulting to in-memory mode:", err.message);
+    // process.exit(1); // Don't crash, allow in-memory fallback
+    app.listen(PORT, () => {
+      console.log(`Backend running on http://localhost:${PORT} (In-Memory Mode)`);
+    });
   });

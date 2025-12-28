@@ -5,9 +5,9 @@ const GEMINI_MODELS =
   (process.env.GEMINI_MODELS &&
     process.env.GEMINI_MODELS.split(",").map(m => m.trim()).filter(Boolean)) ||
   (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : null) || [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-pro"
+    "gemini-2.5-flash",
+    "gemini-flash-latest",
+    "gemini-pro-latest"
   ];
 
 // UPDATED: Default to "v1beta" to support System Instructions and newer models
@@ -73,7 +73,7 @@ async function tryGemini(history: HistoryMessage[], userMessage: string) {
 
   // v1beta supports 'systemInstruction', v1 does not.
   const supportsSystemInstruction = GEMINI_API_VERSION.startsWith("v1beta");
-  
+
   const transcript = history
     .map(h => `${h.role === "assistant" ? "Agent" : "User"}: ${h.content}`)
     .join("\n");
@@ -88,7 +88,7 @@ Agent:`;
   for (const modelName of GEMINI_MODELS) {
     try {
       const url = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${modelName}:generateContent?key=${geminiApiKey}`;
-      
+
       const payload: Record<string, unknown> = {
         contents: [{ role: "user", parts: [{ text: prompt }] }]
       };
@@ -104,7 +104,7 @@ Agent:`;
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         // Log specific error to help debugging
         console.warn(`Gemini call failed (${modelName}):`, data?.error?.message || response.statusText);
@@ -113,7 +113,7 @@ Agent:`;
 
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text && text.trim()) return text.trim();
-      
+
     } catch (err: any) {
       const msg =
         err?.statusText ||
